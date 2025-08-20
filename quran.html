@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quran Reader — Juz by Juz</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1b1f23;
+        --muted: #6a737d;
+        --accent: #0ea5e9;
+        --card: #f7f8f9;
+        --border: #e5e7eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0f14;
+          --fg: #e6e6e6;
+          --muted: #9aa4ad;
+          --accent: #38bdf8;
+          --card: #12161c;
+          --border: #1f262e;
+        }
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.7;
+      }
+
+      .container {
+        max-width: 900px;
+        margin-inline: auto;
+        padding: 12px 14px 24px;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        transition: transform 0.3s ease;
+      }
+      @media (max-width: 640px) {
+        header.reading-mode {
+          transform: translateY(-100%);
+        }
+      }
+      header .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 8px;
+        padding: 10px 14px;
+        align-items: center;
+      }
+      @media (max-width: 640px) {
+        header .controls {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .container {
+          padding: 8px 12px 20px;
+        }
+      }
+      .control {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        color: var(--fg);
+        min-height: 44px;
+        font-size: 16px;
+      }
+      @media (max-width: 640px) {
+        .control {
+          padding: 14px 16px;
+          min-height: 48px;
+          font-size: 18px;
+        }
+      }
+      select.control { appearance: none; }
+      .btn {
+        cursor: pointer;
+        user-select: none;
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--fg);
+        padding: 12px 16px;
+        border-radius: 10px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+      @media (max-width: 640px) {
+        .btn {
+          padding: 14px 18px;
+          min-height: 48px;
+          font-size: 18px;
+        }
+      }
+      .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+      .summary {
+        font-size: 14px;
+        color: var(--muted);
+        padding: 6px 14px 12px;
+      }
+
+      .ayah-list {
+        display: grid;
+        gap: var(--ayah-gap, 8px);
+        margin-top: 16px;
+      }
+      .ayah {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: var(--ayah-padding, 12px);
+      }
+      .ayah-meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .ayah-text {
+        font-size: var(--arabic-size, 20px);
+        line-height: var(--line-height, 2);
+        word-spacing: var(--word-spacing, 2px);
+      }
+      
+      /* Tajweed Color Coding */
+      .ghunna { color: #e74c3c; font-weight: 500; } /* Red for Ghunna */
+      .madd { color: #3498db; } /* Blue for Madd */
+      .qalqala { color: #27ae60; } /* Green for Qalqala */
+      .ikhfa { color: #f39c12; } /* Orange for Ikhfa */
+      .idgham { color: #9b59b6; } /* Purple for Idgham */
+      .iqlab { color: #e67e22; } /* Dark orange for Iqlab */
+      .allah { color: #c0392b; font-weight: 600; } /* Dark red for Allah */
+      .waqf { color: #8e44ad; opacity: 0.8; } /* Purple for waqf marks */
+      .izhar { color: #16a085; } /* Teal for Izhar */
+      .heavy-letters { color: #d35400; } /* Brown for heavy letters */
+      .light-letters { color: #2980b9; } /* Blue for light letters */
+      .sun-letters { color: #f1c40f; } /* Yellow for sun letters */
+      .moon-letters { color: #95a5a6; } /* Gray for moon letters */
+      
+      @media (max-width: 640px) {
+        .ayah-text { 
+          font-size: 24px;
+          line-height: 2.2;
+        }
+        .ayah {
+          padding: 16px;
+        }
+        .ayah-meta {
+          font-size: 14px;
+          margin-bottom: 8px;
+        }
+      }
+
+      .pagination {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 20px 0 12px;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 640px) {
+        .pagination {
+          gap: 8px;
+          margin: 24px 0 16px;
+        }
+        .pagination .btn {
+          flex: 1;
+          max-width: 120px;
+        }
+      }
+      
+      footer a:hover {
+        text-decoration: underline;
+      }
+      
+      /* Settings Panel */
+      .settings-panel {
+        position: fixed;
+        top: 0;
+        right: -320px;
+        width: 300px;
+        height: 100vh;
+        background: var(--bg);
+        border-left: 1px solid var(--border);
+        padding: 20px;
+        transition: right 0.3s ease;
+        z-index: 100;
+        overflow-y: auto;
+      }
+      .settings-panel.open {
+        right: 0;
+      }
+      .settings-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+      }
+      .settings-overlay.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .settings-group {
+        margin-bottom: 20px;
+      }
+      .settings-group h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .setting-label {
+        font-size: 13px;
+        color: var(--fg);
+      }
+      .range-input {
+        width: 100px;
+        margin-left: 10px;
+      }
+      .radio-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 4px;
+      }
+      .close-btn:hover {
+        color: var(--fg);
+      }
+      @media (max-width: 640px) {
+        .settings-panel {
+          width: 100vw;
+          right: -100vw;
+        }
+      }
+      .page-info { font-size: 14px; color: var(--muted); }
+
+      .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="controls container">
+        <label class="visually-hidden" for="juzSelect">Select Juz</label>
+        <select id="juzSelect" class="control" title="Select Juz">
+          <option value="">Select Juz...</option>
+        </select>
+
+        <label class="visually-hidden" for="pageSize">Page Size</label>
+        <select id="pageSize" class="control" title="Page Size">
+          <option value="20" selected>20 verses</option>
+          <option value="30">30 verses</option>
+          <option value="40">40 verses</option>
+          <option value="60">60 verses</option>
+        </select>
+
+        <button id="prevBtn" class="btn">◀ Previous</button>
+        <button id="nextBtn" class="btn">Next ▶</button>
+        <button id="settingsBtn" class="btn" title="Settings">⚙️</button>
+      </div>
+      <div class="summary container" id="summary"></div>
+    </header>
+
+    <main class="container">
+      <div id="list" class="ayah-list" aria-live="polite"></div>
+      <div class="pagination">
+        <button id="prevBtnBottom" class="btn">◀ Previous</button>
+        <span id="pageInfo" class="page-info"></span>
+        <button id="nextBtnBottom" class="btn">Next ▶</button>
+      </div>
+      
+      <footer style="margin-top: 40px; padding: 20px; text-align: center; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border);">
+        <p>Quran text provided by <a href="https://tanzil.net" target="_blank" style="color: var(--accent); text-decoration: none;">Tanzil Project</a></p>
+      </footer>
+    </main>
+
+    <!-- Settings Panel -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+      <div class="settings-header">
+        <h2 style="margin: 0; font-size: 16px;">Settings</h2>
+        <button class="close-btn" id="closeSettings">×</button>
+      </div>
+      
+      <div class="settings-group">
+        <h3>Text Size</h3>
+        <div class="setting-item">
+          <span class="setting-label">Arabic Text</span>
+          <input type="range" class="range-input" id="arabicSize" min="16" max="36" value="20">
+          <span id="arabicSizeValue">20px</span>
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">UI Text</span>
+          <input type="range" class="range-input" id="uiSize" min="12" max="20" value="16">
+          <span id="uiSizeValue">16px</span>
+        </div>
+      </div>
+      
+      <div class="settings-group">
+        <h3>Layout</h3>
+        <div class="setting-item">
+          <span class="setting-label">Spacing</span>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="spacing" value="compact"> Compact
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="spacing" value="normal" checked> Normal
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="spacing" value="spacious"> Spacious
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-group">
+        <h3>Reading</h3>
+        <div class="setting-item">
+          <span class="setting-label">Line Height</span>
+          <input type="range" class="range-input" id="lineHeight" min="1.5" max="3" step="0.1" value="2">
+          <span id="lineHeightValue">2.0</span>
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">Word Spacing</span>
+          <input type="range" class="range-input" id="wordSpacing" min="0" max="8" value="2">
+          <span id="wordSpacingValue">2px</span>
+        </div>
+      </div>
+      
+      <div class="settings-group">
+        <button class="btn" id="resetSettings" style="width: 100%; margin-top: 10px;">Reset to Default</button>
+      </div>
+    </div>
+
+    <script>
+      // Known Juz start positions as [surah, ayah]
+      // Source: standard 30-juz division
+      const JUZ_STARTS = [
+        [1,1], [2,142], [2,253], [3,92], [4,24], [4,148], [5,82], [6,111], [7,88], [8,41],
+        [9,93], [11,6], [12,53], [15,1], [17,1], [18,75], [21,1], [23,1], [25,21], [27,56],
+        [29,46], [33,31], [36,28], [39,32], [41,47], [46,1], [51,31], [58,1], [67,1], [78,1]
+      ];
+      const JUZ_END = [114, 6]; // Surah 114, Ayah 6
+
+      // App state
+      let allAyahs = []; // {s: surah, a: ayah, t: text}
+      let currentJuz = null; // Start with no Juz selected
+      let pageSize = 20; // Default to 20 ayahs
+      let pageIndex = 0; // zero-based
+      let juzAyahs = [];
+      
+      // Settings state (session only)
+      let settings = {
+        arabicSize: 20,
+        uiSize: 16,
+        spacing: 'normal',
+        lineHeight: 2.0,
+        wordSpacing: 2
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function cmpRef(s1, a1, s2, a2) {
+        if (s1 !== s2) return s1 - s2;
+        return a1 - a2;
+      }
+
+      function getJuzRange(j) {
+        const start = JUZ_STARTS[j - 1];
+        const end = j < 30 ? JUZ_STARTS[j] : JUZ_END; // exclusive end marker
+        return { start: { s: start[0], a: start[1] }, end: { s: end[0], a: end[1] } };
+      }
+
+      function parseLine(line) {
+        // Format example: 2|255|اللّهُ لاَ إِلَـٰهَ ...
+        const first = line.indexOf('|');
+        const second = line.indexOf('|', first + 1);
+        if (first === -1 || second === -1) return null;
+        const s = parseInt(line.slice(0, first), 10);
+        const a = parseInt(line.slice(first + 1, second), 10);
+        const t = line.slice(second + 1).trim();
+        if (!Number.isFinite(s) || !Number.isFinite(a) || !t) return null;
+        return { s, a, t: applyTajweedColors(t) };
+      }
+
+      function applyTajweedColors(text) {
+        let coloredText = text;
+        
+        // Allah name - highest priority
+        coloredText = coloredText.replace(/(اللَّه|الله)/g, '<span class="allah">$1</span>');
+        
+        // Heavy letters (استعلاء)
+        coloredText = coloredText.replace(/([خصضغطقظ])/g, '<span class="heavy-letters">$1</span>');
+        
+        // Sun letters (الحروف الشمسية)
+        coloredText = coloredText.replace(/ال([تثدذرزسشصضطظلن])/g, 'ا<span class="sun-letters">ل$1</span>');
+        
+        // Moon letters (الحروف القمرية)
+        coloredText = coloredText.replace(/ال([ابجحخعغفقكمهوي])/g, '<span class="moon-letters">ال</span>$1');
+        
+        // Madd letters - elongation (more comprehensive)
+        coloredText = coloredText.replace(/(آ|اً|او|اي|ى|وا|يا|ئا)/g, '<span class="madd">$1</span>');
+        coloredText = coloredText.replace(/(ا)(?=[ًٌٍ])/g, '<span class="madd">$1</span>');
+        coloredText = coloredText.replace(/(و)(?=[ُ])/g, '<span class="madd">$1</span>');
+        coloredText = coloredText.replace(/(ي)(?=[ِ])/g, '<span class="madd">$1</span>');
+        
+        // Ghunna - nasal sounds (expanded)
+        coloredText = coloredText.replace(/(نّ|مّ|نْ(?=[بم])|مْ(?=[بم]))/g, '<span class="ghunna">$1</span>');
+        
+        // Qalqala letters - bouncing sounds (more contexts)
+        coloredText = coloredText.replace(/([قطبجد])(?=[ًٌٍْ]|\s|$)/g, '<span class="qalqala">$1</span>');
+        
+        // Noon rules - Izhar (clear)
+        coloredText = coloredText.replace(/(ن)(?=[أإعحغهء])/g, '<span class="izhar">$1</span>');
+        
+        // Noon rules - Ikhfa (hidden)
+        coloredText = coloredText.replace(/(ن)(?=[تثجدذزسشصضطظفقك])/g, '<span class="ikhfa">$1</span>');
+        
+        // Noon rules - Idgham (merging)
+        coloredText = coloredText.replace(/(ن)(?=[يرملون])/g, '<span class="idgham">$1</span>');
+        
+        // Noon rules - Iqlab (conversion)
+        coloredText = coloredText.replace(/(ن)(?=ب)/g, '<span class="iqlab">$1</span>');
+        
+        // Waqf marks
+        coloredText = coloredText.replace(/(۝|۞|۩|ۖ|ۗ|ۘ|ۙ|ۚ|ۛ|ۜ)/g, '<span class="waqf">$1</span>');
+        
+        return coloredText;
+      }
+      
+      async function loadQuran() {
+        const res = await fetch('quran-simple.txt');
+        if (!res.ok) throw new Error('Failed to load quran-simple.txt');
+        const text = await res.text();
+        const lines = text.split(/\r?\n/);
+        allAyahs = [];
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const ay = parseLine(line);
+          if (ay) allAyahs.push(ay);
+        }
+      }
+
+      function filterJuz(j) {
+        const { start, end } = getJuzRange(j);
+        juzAyahs = allAyahs.filter(({ s, a }) => {
+          // Ensure exact start boundary - include only verses >= start
+          const gteStart = cmpRef(s, a, start.s, start.a) >= 0;
+          // Ensure exact end boundary - exclude verses >= end (for next Juz)
+          const ltEnd = cmpRef(s, a, end.s, end.a) < 0;
+          return gteStart && ltEnd;
+        });
+        
+        // Debug log to verify boundaries
+        if (juzAyahs.length > 0) {
+          const first = juzAyahs[0];
+          const last = juzAyahs[juzAyahs.length - 1];
+          console.log(`Juz ${j}: ${first.s}:${first.a} to ${last.s}:${last.a} (${juzAyahs.length} verses)`);
+        }
+      }
+
+      function render() {
+        const listEl = $('list');
+        
+        // If no Juz is selected, show selection message
+        if (!currentJuz) {
+          listEl.innerHTML = `
+            <div class="ayah" style="text-align: center; padding: 40px;">
+              <div class="ayah-text" style="font-size: 18px; color: var(--muted);">
+                Please select a Juz from the dropdown above to start reading
+              </div>
+            </div>
+          `;
+          $('pageInfo').textContent = '';
+          $('summary').textContent = 'Select a Juz to begin';
+          $('prevBtn').disabled = true;
+          $('nextBtn').disabled = true;
+          $('prevBtnBottom').disabled = true;
+          $('nextBtnBottom').disabled = true;
+          // Show header on mobile when no Juz selected
+          if (window.innerWidth <= 640) {
+            document.querySelector('header').classList.remove('reading-mode');
+          }
+          return;
+        }
+        
+        // Hide header on mobile when reading
+        if (window.innerWidth <= 640) {
+          document.querySelector('header').classList.add('reading-mode');
+        }
+
+        const start = pageIndex * pageSize;
+        const end = Math.min(start + pageSize, juzAyahs.length);
+        const pageAyahs = juzAyahs.slice(start, end);
+
+        listEl.innerHTML = pageAyahs.map(({ s, a, t }) => `
+          <article class="ayah">
+            <div class="ayah-meta">Surah ${s} • Verse ${a}</div>
+            <div class="ayah-text">${t}</div>
+          </article>
+        `).join('');
+
+        const totalPages = Math.max(1, Math.ceil(juzAyahs.length / pageSize));
+        const pageInfo = `Page ${pageIndex + 1} of ${totalPages}`;
+        $('pageInfo').textContent = pageInfo;
+        $('summary').textContent = `Juz ${currentJuz} • ${juzAyahs.length} verses`;
+
+        const canPrev = pageIndex > 0;
+        const canNext = pageIndex + 1 < totalPages;
+        $('prevBtn').disabled = !canPrev;
+        $('nextBtn').disabled = !canNext;
+        $('prevBtnBottom').disabled = !canPrev;
+        $('nextBtnBottom').disabled = !canNext;
+        // Scroll to top, but account for hidden header on mobile
+        const scrollTarget = window.innerWidth <= 640 ? 0 : 0;
+        window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+      }
+
+      function onChangeJuz(j) {
+        if (!j || j === '') {
+          currentJuz = null;
+          juzAyahs = [];
+          pageIndex = 0;
+          render();
+          return;
+        }
+        currentJuz = parseInt(j, 10);
+        pageIndex = 0;
+        filterJuz(currentJuz);
+        render();
+      }
+
+      function onChangePageSize(size) {
+        pageSize = size;
+        pageIndex = 0;
+        render();
+      }
+
+      function nextPage() {
+        const totalPages = Math.ceil(juzAyahs.length / pageSize);
+        if (pageIndex + 1 < totalPages) {
+          pageIndex++;
+          render();
+        }
+      }
+
+      function prevPage() {
+        if (pageIndex > 0) {
+          pageIndex--;
+          render();
+        }
+      }
+
+      function populateJuzSelect() {
+        const sel = $('juzSelect');
+        const options = ['<option value="">Select Juz...</option>'];
+        for (let i = 1; i <= 30; i++) {
+          options.push(`<option value="${i}">Juz ${i}</option>`);
+        }
+        sel.innerHTML = options.join('');
+        sel.value = currentJuz ? String(currentJuz) : '';
+      }
+
+      function applySettings() {
+        const root = document.documentElement;
+        
+        // Apply text sizes
+        root.style.setProperty('--arabic-size', settings.arabicSize + 'px');
+        root.style.setProperty('--ui-size', settings.uiSize + 'px');
+        root.style.setProperty('--line-height', settings.lineHeight);
+        root.style.setProperty('--word-spacing', settings.wordSpacing + 'px');
+        
+        // Apply spacing
+        const container = $('.container');
+        const ayahs = document.querySelectorAll('.ayah');
+        
+        if (settings.spacing === 'compact') {
+          root.style.setProperty('--ayah-gap', '4px');
+          root.style.setProperty('--ayah-padding', '8px');
+        } else if (settings.spacing === 'spacious') {
+          root.style.setProperty('--ayah-gap', '16px');
+          root.style.setProperty('--ayah-padding', '20px');
+        } else {
+          root.style.setProperty('--ayah-gap', '8px');
+          root.style.setProperty('--ayah-padding', '12px');
+        }
+        
+        // Update ayah text styles
+        const ayahTexts = document.querySelectorAll('.ayah-text');
+        ayahTexts.forEach(text => {
+          text.style.fontSize = settings.arabicSize + 'px';
+          text.style.lineHeight = settings.lineHeight;
+          text.style.wordSpacing = settings.wordSpacing + 'px';
+        });
+        
+        // Update ayah padding
+        ayahs.forEach(ayah => {
+          ayah.style.padding = (settings.spacing === 'compact' ? '8px' : 
+                               settings.spacing === 'spacious' ? '20px' : '12px');
+        });
+      }
+      
+      function updateSettingsUI() {
+        $('arabicSize').value = settings.arabicSize;
+        $('arabicSizeValue').textContent = settings.arabicSize + 'px';
+        $('uiSize').value = settings.uiSize;
+        $('uiSizeValue').textContent = settings.uiSize + 'px';
+        $('lineHeight').value = settings.lineHeight;
+        $('lineHeightValue').textContent = settings.lineHeight.toFixed(1);
+        $('wordSpacing').value = settings.wordSpacing;
+        $('wordSpacingValue').textContent = settings.wordSpacing + 'px';
+        
+        document.querySelector(`input[name="spacing"][value="${settings.spacing}"]`).checked = true;
+      }
+      
+      function wireEvents() {
+        $('juzSelect').addEventListener('change', (e) => onChangeJuz(e.target.value));
+        $('pageSize').addEventListener('change', (e) => onChangePageSize(parseInt(e.target.value, 10)));
+        $('prevBtn').addEventListener('click', prevPage);
+        $('nextBtn').addEventListener('click', nextPage);
+        $('prevBtnBottom').addEventListener('click', prevPage);
+        $('nextBtnBottom').addEventListener('click', nextPage);
+        
+        // Settings events
+        $('settingsBtn').addEventListener('click', () => {
+          $('settingsPanel').classList.add('open');
+          $('settingsOverlay').classList.add('open');
+          // Temporarily show header when settings open
+          if (window.innerWidth <= 640) {
+            document.querySelector('header').classList.remove('reading-mode');
+          }
+        });
+        
+        $('closeSettings').addEventListener('click', closeSettings);
+        $('settingsOverlay').addEventListener('click', closeSettings);
+        
+        function closeSettings() {
+          $('settingsPanel').classList.remove('open');
+          $('settingsOverlay').classList.remove('open');
+          // Hide header again if Juz is selected
+          if (window.innerWidth <= 640 && currentJuz) {
+            document.querySelector('header').classList.add('reading-mode');
+          }
+        }
+        
+        // Settings controls
+        $('arabicSize').addEventListener('input', (e) => {
+          settings.arabicSize = parseInt(e.target.value);
+          $('arabicSizeValue').textContent = settings.arabicSize + 'px';
+          applySettings();
+        });
+        
+        $('uiSize').addEventListener('input', (e) => {
+          settings.uiSize = parseInt(e.target.value);
+          $('uiSizeValue').textContent = settings.uiSize + 'px';
+          applySettings();
+        });
+        
+        $('lineHeight').addEventListener('input', (e) => {
+          settings.lineHeight = parseFloat(e.target.value);
+          $('lineHeightValue').textContent = settings.lineHeight.toFixed(1);
+          applySettings();
+        });
+        
+        $('wordSpacing').addEventListener('input', (e) => {
+          settings.wordSpacing = parseInt(e.target.value);
+          $('wordSpacingValue').textContent = settings.wordSpacing + 'px';
+          applySettings();
+        });
+        
+        document.querySelectorAll('input[name="spacing"]').forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            settings.spacing = e.target.value;
+            applySettings();
+          });
+        });
+        
+        $('resetSettings').addEventListener('click', () => {
+          settings = {
+            arabicSize: 20,
+            uiSize: 16,
+            spacing: 'normal',
+            lineHeight: 2.0,
+            wordSpacing: 2
+          };
+          updateSettingsUI();
+          applySettings();
+        });
+      }
+
+      (async function init() {
+        try {
+          populateJuzSelect();
+          wireEvents();
+          updateSettingsUI();
+          applySettings();
+          await loadQuran();
+          render(); // Show initial state with no Juz selected
+        } catch (err) {
+          $('list').innerHTML = `<div class="ayah">Error loading text: ${err.message}</div>`;
+          console.error(err);
+        }
+      })();
+    </script>
+  </body>
+</html>
