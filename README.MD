@@ -7,7 +7,7 @@ It features:
 - Open source code so the community can contribute to improving the app.
 - Cross-platform compatibility.
 
-But this is the IOS Addition, so if users from IOS want to make it liek a native IOS app they can go to safari and open our website ( https://annuaicoder.github.io/QuranGlow-IOS/ ) then do this: Share -> Add To Home Screen.
+But this is the IOS Addition, so if users from IOS want to make it like a native IOS app they can go to safari and open our website ( https://annuaicoder.github.io/QuranGlow-IOS/ ) then do this: Share -> Add To Home Screen.
 
 All the source code for this project is released under the GNU General Public License v3.0 (GPL-3.0).
 
