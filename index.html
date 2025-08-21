@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#4CAF50">
+  <link rel="manifest" href="/manifest.json">
   <!-- Enable full-screen "app mode" -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 
@@ -28,6 +30,93 @@
 
   <!-- Font for UI -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful');
+            // Request notification permission after service worker is registered
+            requestNotificationPermission();
+            // Schedule notifications
+            scheduleNotifications();
+          })
+          .catch(err => console.log('ServiceWorker registration failed: ', err));
+      });
+    }
+
+    // Request notification permission
+    function requestNotificationPermission() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            console.log('Notification permission granted');
+            // Show welcome notification
+            showNotification(
+              'New Update!',
+              'QuranGlow now has push notifications! You\'ll receive daily reminders to read the Quran.'
+            );
+          }
+        });
+      }
+    }
+
+    // Show a notification
+    function showNotification(title, body) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            body: body,
+            icon: '/icon.png',
+            vibrate: [100, 50, 100]
+          });
+        });
+      }
+    }
+
+    // Schedule daily notifications
+    function scheduleNotifications() {
+      if (!('Notification' in window) || Notification.permission !== 'granted') {
+        return;
+      }
+
+      // Schedule morning notification (10:00 AM)
+      scheduleDailyNotification(
+        'Time for Quran Recitation',
+        'Start your day with the light of the Quran. Tap to read now!',
+        10, 0
+      );
+
+      // Schedule evening notification (8:00 PM)
+      scheduleDailyNotification(
+        'Evening Reminder',
+        'End your day with the blessings of the Quran. Tap to read now!',
+        20, 0
+      );
+    }
+
+    function scheduleDailyNotification(title, body, hour, minute) {
+      const now = new Date();
+      const scheduledTime = new Date();
+      
+      scheduledTime.setHours(hour, minute, 0, 0);
+      
+      // If the time has already passed today, schedule for tomorrow
+      if (scheduledTime <= now) {
+        scheduledTime.setDate(scheduledTime.getDate() + 1);
+      }
+
+      const timeUntilNotification = scheduledTime.getTime() - now.getTime();
+      
+      setTimeout(() => {
+        showNotification(title, body);
+        // Schedule the next notification for the next day
+        scheduleDailyNotification(title, body, hour, minute);
+      }, timeUntilNotification);
+    }
+  </script>
 
   <style>
     body {
